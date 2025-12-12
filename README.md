@@ -2,8 +2,6 @@
 
 A clean, modular, SLRT-style Python pipeline for generating sign-language skeleton animations (49 MediaPipe Holistic landmarks) from spoken text.
 
-This repository restructures the project into a **professional py-script pipeline**, exactly as expected in research codebases such as **SLRT**, removing all notebook dependency.
-
 ---
 
 ## 🌐 Overview
