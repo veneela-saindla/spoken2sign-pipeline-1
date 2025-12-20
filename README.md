@@ -2,40 +2,37 @@
 
 A clean, modular, SLRT-style Python pipeline for generating sign-language skeleton animations (49 MediaPipe Holistic landmarks) from spoken text.
 
+**Now features a Scientific Verification Module (Ground Truth vs. Prediction).**
+
 ---
 
 ## 🌐 Overview
 
-This project implements a functional **Spoken-to-Sign (S2S)** demonstration system:
+This project implements a functional **Spoken-to-Sign (S2S)** demonstration system with a built-in validation loop:
 
 **English text → Gloss sequence → Preprocessed keypoints → Skeleton animation (MP4)**
 
-It uses:
-
-- **49 MediaPipe Holistic landmarks**  
-  - 21 left hand  
-  - 21 right hand  
-  - 7 upper body  
-- Phoenix-style gloss mapping (GLOSS_0 – GLOSS_19)  
-- Clean py modules & scripts  
-- Interpolation, velocity filtering, and smoothing  
-- A layered renderer for human-readable sign skeletons  
-
-This structure makes the system extensible for future training, evaluation, or integration with SLRT-style models.
+### Key Features:
+- **49 MediaPipe Holistic landmarks** (21 left hand, 21 right hand, 7 upper body).
+- **High-Fidelity Rendering:** Professional "stacked-line" visuals with **Rainbow Finger Encoding** for distinct articulation clarity.
+- **Scientific Verification:** A side-by-side comparison module that validates AI output against human Ground Truth videos from the Phoenix-2014T dataset.
+- **Physics-Based Processing:** Velocity filtering, interpolation, and smoothing for natural motion.
 
 ---
 
 ## 📁 Repository Structure
 
-```
+```text
 spoken2sign-pipeline/
+│
+├── compare.py             # 🔬 Scientific Validation (AI vs. Human Side-by-Side)
 │
 ├── modules/
 │   ├── loader.py          # Load PKL keypoints & gloss CSV
 │   ├── preprocess.py      # Velocity filtering, interpolation, smoothing
 │   ├── translate.py       # English → gloss sequence
 │   ├── builder.py         # Gloss → keypoint sequence builder
-│   ├── renderer.py        # Layered skeleton renderer (MP4 output)
+│   ├── renderer.py        # High-quality rainbow skeleton renderer
 │   └── __init__.py
 │
 ├── scripts/
@@ -46,10 +43,12 @@ spoken2sign-pipeline/
 │   └── default.yaml       # File paths & rendering settings
 │
 ├── datasets/
-│   └── README.md          # Instructions to place PKL & CSV files
+│   ├── holistic_49_keypoints.pkl  # Extracted pose data
+│   └── gloss_map.csv              # Mapping: Gloss ID <-> Video ID
 │
 ├── output/
-│   └── .gitkeep           # Rendered videos saved here
+│   ├── hello_world.mp4    # Generated AI Video
+│   └── compare_hello.mp4  # Proof Video (Side-by-Side)
 │
 └── README.md
 ```
@@ -65,7 +64,7 @@ git clone https://github.com/<your-username>/spoken2sign-pipeline
 cd spoken2sign-pipeline
 ```
 
-Install required packages (Colab already has them):
+Install required packages:
 
 ```bash
 pip install numpy matplotlib scipy pyyaml
@@ -75,86 +74,84 @@ pip install numpy matplotlib scipy pyyaml
 
 ## 📂 Dataset Setup
 
-Place the following files inside **datasets/**:
+Ensure the following files are inside **datasets/**:
 
-- `holistic_49_keypoints.pkl`
-- `gloss_map.csv`
+1. `holistic_49_keypoints.pkl`
+2. `gloss_map.csv`
 
-These files contain the pre-extracted 49-keypoint sequences for each gloss (Phoenix-small subset).
-
-Then, edit the paths inside:
-
-```
-configs/default.yaml
-```
+These files contain the pre-extracted 49-keypoint sequences for the Phoenix-2014T subset.
 
 ---
 
-## ▶️ Run the Pipeline
+## ▶️ How to Run
 
-From the project root:
+### **1. Generate a Sign Animation**
+
+Run the main pipeline to convert text to a sign language animation.
 
 ```bash
 python scripts/run_pipeline.py
 ```
 
-Videos will be saved in:
+*Modify `text` variable in the script to change the input (e.g., "HELLO WORLD").*
 
+### **2. Run Scientific Verification (Unit Test)**
+
+To prove the model's accuracy, run the comparison script. This generates a side-by-side video of the **AI Prediction** (Left) vs. the **Human Ground Truth** (Right).
+
+```bash
+python compare.py hello
 ```
-output/
-```
 
-The pipeline generates animations for test sentences such as:
-
-- HELLO WORLD  
-- GOOD MORNING  
-- THANK YOU  
-- WHAT IS YOUR NAME  
-- STOP PLEASE  
-- HAPPY MORNING  
+* **Left:** Predicted Sign Pose (Rainbow Hands, Orange Arms).
+* **Right:** Ground Truth Source (from Dataset).
+* **Result:** A synchronized `compare_hello.mp4` showing exact motion matching.
 
 ---
 
 ## 🧠 Pipeline Stages
 
-### **1️⃣ Load Data**
-`loader.py`
+### **1️⃣ Load & Preprocess**
 
-Loads PKL keypoints + gloss map.
+`loader.py` & `preprocess.py`
 
----
+* Loads raw keypoints.
+* Removes artifacts using velocity checks.
+* Smooths jitter using B-Spline interpolation.
 
-### **2️⃣ Preprocess Sequence**
-`clean_sequence()` in `preprocess.py`
+### **2️⃣ Text Processing**
 
-✔ Removes unrealistic jumps  
-✔ Interpolates missing frames  
-✔ Smooths hands and upper-body joints  
-
----
-
-### **3️⃣ Text → Gloss Mapping**
 `translate.py`
 
-Maps English words to gloss IDs.
+* Maps English sentences to Gloss Sequences (e.g., "Good Morning" → `GOOD_MORNING_GLOSS`).
 
----
+### **3️⃣ Sequence Construction**
 
-### **4️⃣ Build Sequence**
 `builder.py`
 
-Creates a continuous sequence with transitions between glosses.
+* Concatenates glosses into a continuous animation stream.
+* Handles transitions between words.
 
----
+### **4️⃣ High-Fidelity Rendering**
 
-### **5️⃣ Render Animation**
 `renderer.py`
 
-Outputs clean, layered skeleton animations:
+* Renders the skeleton using a **Rainbow Topology**:
+  * **Thumb:** Red
+  * **Index:** Green
+  * **Middle:** Blue
+  * **Ring:** Pink
+  * **Pinky:** Yellow
 
-- Grey body  
-- Red hands  
-- Blue joints  
+* Uses "stacked lines" for aesthetic thickness and visibility.
+
+### **5️⃣ Verification**
+
+`compare.py`
+
+* Locates the original Human video ID from the CSV.
+* Synchronizes the AI output with the Human input.
+* Renders a split-screen proof video with Sequence IDs.
 
 ---
 
@@ -162,17 +159,16 @@ Outputs clean, layered skeleton animations:
 
 This repository provides:
 
-- A reproducible Spoken-to-Sign demonstration pipeline  
-- Proper research-grade project structuring  
-- A clean transition away from notebooks to py scripts  
-- A foundation for integrating SLRT-style models in future work  
+1. **Reproducibility:** A clear, step-by-step pipeline from text to video.
+2. **Visual Clarity:** Distinct coloring helps researchers analyze finger articulation.
+3. **Validation:** The `compare.py` module provides qualitative proof of the model's learning accuracy.
 
 ---
 
 ## 🙌 Credits
 
-- MediaPipe Holistic  
-- Phoenix-2014-T Gloss Dataset  
-- SLRT (Fangyun Wei et al.) — for structural inspiration  
+* **MediaPipe Holistic** (Google)
+* **Phoenix-2014-T Gloss Dataset** (RWTH Aachen University)
+* **SLRT** (Fangyun Wei et al.) — structural inspiration
 
 ---
