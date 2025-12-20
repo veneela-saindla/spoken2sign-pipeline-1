@@ -1,10 +1,8 @@
 pkl_path: "datasets/holistic_49_keypoints.pkl"
 gloss_csv: "datasets/gloss_map.csv"
-
 output_dir: "output"
 
-render_fps: 25
 render_width: 640
 render_height: 640
-
+render_fps: 25
 transition_frames: 15
