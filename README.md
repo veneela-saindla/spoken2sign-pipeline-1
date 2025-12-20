@@ -133,7 +133,7 @@ Generate a split-screen video to visually verify the result.
 
 ```bash
 # Uses FFmpeg to stitch videos
-ffmpeg -i output/hello_world.mp4 -i output/hello_world_gt.mp4 -filter_complex "[0:v][1:v]hstack=inputs=2[v]" -map "[v]" output/final_comparison.mp4
+!ffmpeg -y -i output/hello_world.mp4 -i output/hello_world_gt.mp4 -filter_complex "[1:v]tpad=stop_mode=clone:stop_duration=10[gt_frozen];[0:v][gt_frozen]hstack=inputs=2[v]" -map "[v]" -shortest output/final_comparison_fixed.mp4
 
 ```
 
