@@ -2,7 +2,7 @@
 
 A clean, modular, SLRT-style Python pipeline for generating sign-language skeleton animations (49 MediaPipe Holistic landmarks) from spoken text.
 
-**Now features a Scientific Verification Module (Ground Truth vs. Prediction).**
+**Now features a Scientific Verification Module (Ground Truth Comparison & Quantitative Metrics).**
 
 ---
 
@@ -13,10 +13,11 @@ This project implements a functional **Spoken-to-Sign (S2S)** demonstration syst
 **English text → Gloss sequence → Preprocessed keypoints → Skeleton animation (MP4)**
 
 ### Key Features:
-- **49 MediaPipe Holistic landmarks** (21 left hand, 21 right hand, 7 upper body).
-- **High-Fidelity Rendering:** Professional "stacked-line" visuals with **Rainbow Finger Encoding** for distinct articulation clarity.
-- **Scientific Verification:** A side-by-side comparison module that validates AI output against human Ground Truth videos from the Phoenix-2014T dataset.
-- **Physics-Based Processing:** Velocity filtering, interpolation, and smoothing for natural motion.
+
+* **49 MediaPipe Holistic landmarks** (21 left hand, 21 right hand, 7 upper body).
+* **High-Fidelity Rendering:** Professional "stacked-line" visuals with **Rainbow Finger Encoding** for distinct articulation clarity.
+* **Scientific Verification:** A side-by-side comparison module that validates AI output against human Ground Truth videos.
+* **Quantitative Metrics:** Built-in evaluation of Geometric Accuracy (MPJPE) and Visual Fidelity (FID).
 
 ---
 
@@ -26,6 +27,8 @@ This project implements a functional **Spoken-to-Sign (S2S)** demonstration syst
 spoken2sign-pipeline/
 │
 ├── compare.py             # 🔬 Scientific Validation (AI vs. Human Side-by-Side)
+├── evaluate.py            # 📊 Quantitative Metrics (MPJPE, MPJAE, DTW, FID)
+├── render_gt.py           # 🎬 Ground Truth Renderer (High-Fidelity)
 │
 ├── modules/
 │   ├── loader.py          # Load PKL keypoints & gloss CSV
@@ -51,6 +54,7 @@ spoken2sign-pipeline/
 │   └── compare_hello.mp4  # Proof Video (Side-by-Side)
 │
 └── README.md
+
 ```
 
 ---
@@ -62,12 +66,14 @@ Clone the repository:
 ```bash
 git clone https://github.com/<your-username>/spoken2sign-pipeline
 cd spoken2sign-pipeline
+
 ```
 
 Install required packages:
 
 ```bash
-pip install numpy matplotlib scipy pyyaml
+pip install numpy matplotlib scipy pyyaml torch torchvision opencv-python
+
 ```
 
 ---
@@ -91,21 +97,45 @@ Run the main pipeline to convert text to a sign language animation.
 
 ```bash
 python scripts/run_pipeline.py
+
 ```
 
 *Modify `text` variable in the script to change the input (e.g., "HELLO WORLD").*
 
-### **2. Run Scientific Verification (Unit Test)**
+### **2. Generate Ground Truth (Visual Twin)**
 
-To prove the model's accuracy, run the comparison script. This generates a side-by-side video of the **AI Prediction** (Left) vs. the **Human Ground Truth** (Right).
+Render the original human motion with the exact same visual style as the AI output.
 
 ```bash
-python compare.py hello
+python render_gt.py hello_world
+
 ```
 
-* **Left:** Predicted Sign Pose (Rainbow Hands, Orange Arms).
-* **Right:** Ground Truth Source (from Dataset).
-* **Result:** A synchronized `compare_hello.mp4` showing exact motion matching.
+### **3. Run Quantitative Evaluation (Metrics)**
+
+Calculate scientific accuracy scores (MPJPE, DTW, FID).
+
+```bash
+python evaluate.py hello_world
+
+```
+
+**Output Example:**
+
+* **MPJPE (Position Error):** `0.5368` (Geometric Accuracy)
+* **MPJAE (Angle Error):** `20.38°` (Articulation Correctness)
+* **DTW (Time Warping):** `2.33` (Temporal Alignment)
+* **FID (Visual Quality):** `122.66` (Generative Fidelity)
+
+### **4. Visual Comparison (Side-by-Side)**
+
+Generate a split-screen video to visually verify the result.
+
+```bash
+# Uses FFmpeg to stitch videos
+ffmpeg -i output/hello_world.mp4 -i output/hello_world_gt.mp4 -filter_complex "[0:v][1:v]hstack=inputs=2[v]" -map "[v]" output/final_comparison.mp4
+
+```
 
 ---
 
@@ -137,21 +167,14 @@ python compare.py hello
 `renderer.py`
 
 * Renders the skeleton using a **Rainbow Topology**:
-  * **Thumb:** Red
-  * **Index:** Green
-  * **Middle:** Blue
-  * **Ring:** Pink
-  * **Pinky:** Yellow
+* **Thumb:** Red
+* **Index:** Green
+* **Middle:** Blue
+* **Ring:** Pink
+* **Pinky:** Yellow
+
 
 * Uses "stacked lines" for aesthetic thickness and visibility.
-
-### **5️⃣ Verification**
-
-`compare.py`
-
-* Locates the original Human video ID from the CSV.
-* Synchronizes the AI output with the Human input.
-* Renders a split-screen proof video with Sequence IDs.
 
 ---
 
@@ -161,7 +184,7 @@ This repository provides:
 
 1. **Reproducibility:** A clear, step-by-step pipeline from text to video.
 2. **Visual Clarity:** Distinct coloring helps researchers analyze finger articulation.
-3. **Validation:** The `compare.py` module provides qualitative proof of the model's learning accuracy.
+3. **Validation:** The `evaluate.py` module provides research-grade metrics to prove model accuracy.
 
 ---
 
