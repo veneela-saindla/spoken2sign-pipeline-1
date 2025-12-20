@@ -15,89 +15,96 @@ GT_PKL_PATH = os.path.join(PROJECT_ROOT, "datasets", "holistic_49_keypoints.pkl"
 GLOSS_CSV_PATH = os.path.join(PROJECT_ROOT, "datasets", "gloss_map.csv")
 
 # ==========================================
-# 2. EXACT COLOR PALETTE
+# 2. EXACT COLOR PALETTE (From Reference)
 # ==========================================
-C_RED_ARM       = "#FF0000"   
-C_GREEN_ARM     = "#00AA00"   
-C_ORANGE_DARK   = "#FF8C00"   
-C_ORANGE_LIGHT  = "#FFD700"   
-C_HEAD          = "#00AA00"   
+# Rainbow Fingers
+C_THUMB   = "#FF0000"   # Red
+C_INDEX   = "#00AA00"   # Green
+C_MIDDLE  = "#0000CD"   # Blue
+C_RING    = "#FF69B4"   # Pink
+C_PINKY   = "#FFD700"   # Yellow
 
-C_THUMB   = "#FF0000"   
-C_INDEX   = "#00AA00"   
-C_MIDDLE  = "#0000CD"   
-C_RING    = "#FF69B4"   
-C_PINKY   = "#FFD700"   
+# Body Parts
+C_SPINE   = "#00AA00"   # Green (Neck/Head)
+C_SHOULDER= "#FF0000"   # Red
+C_ARM     = "#FF8C00"   # Orange
 
-# Topology
-ARM_RIGHT_UPPER = [(43, 45)]; ARM_RIGHT_LOWER = [(45, 47)]
-ARM_LEFT_UPPER  = [(44, 46)]; ARM_LEFT_LOWER  = [(46, 48)]
+# ==========================================
+# 3. TOPOLOGY DEFINITIONS
+# ==========================================
+# Fingers
 LH_THUMB  = [(0,1), (1,2), (2,3), (3,4)]
 LH_INDEX  = [(0,5), (5,6), (6,7), (7,8)]
 LH_MIDDLE = [(0,9), (9,10),(10,11),(11,12)]
 LH_RING   = [(0,13),(13,14),(14,15),(15,16)]
 LH_PINKY  = [(0,17),(17,18),(18,19),(19,20)]
+
 RH_THUMB  = [(u+21, v+21) for u,v in LH_THUMB]
 RH_INDEX  = [(u+21, v+21) for u,v in LH_INDEX]
 RH_MIDDLE = [(u+21, v+21) for u,v in LH_MIDDLE]
 RH_RING   = [(u+21, v+21) for u,v in LH_RING]
 RH_PINKY  = [(u+21, v+21) for u,v in LH_PINKY]
 
-# ==========================================
-# 3. DRAWING FUNCTIONS
-# ==========================================
-def stacked_line(ax, x0, y0, x1, y1, color, base_lw=2.5, n=4):
-    artists = []
-    for i in range(n):
-        t0 = i / (2 * n); t1 = 1 - t0
-        xm0 = x0 + (x1 - x0) * t0; ym0 = y0 + (y1 - y0) * t0
-        xm1 = x0 + (x1 - x0) * t1; ym1 = y0 + (y1 - y0) * t1
-        lw = base_lw * (0.4 + 0.6 * (i + 1) / n)
-        line, = ax.plot([xm0, xm1], [ym0, ym1], color=color, lw=lw, solid_capstyle="round", zorder=10+i)
-        artists.append(line)
-    return artists
+# Arms
+ARM_LEFT  = [(44, 46), (46, 48)]
+ARM_RIGHT = [(43, 45), (45, 47)]
 
+# ==========================================
+# 4. DRAWING FUNCTIONS (Thin, Clean Lines)
+# ==========================================
 def hard_clamp_hand(points, wrist, shoulder_width):
-    if shoulder_width < 0.01: shoulder_width = 0.15 
-    limit = shoulder_width * 0.8 
+    if shoulder_width < 0.01: shoulder_width = 0.15
+    limit = shoulder_width * 0.8
     for i in range(len(points)):
         vec = points[i] - wrist
-        dist = np.linalg.norm(vec[:2]) 
+        dist = np.linalg.norm(vec[:2])
         if dist > limit:
             points[i] = wrist + (vec * (limit / dist))
     return points
 
-def draw_skeleton_high_quality(ax, f):
+def draw_skeleton_clean(ax, f):
     artists = []
     f = f.copy()
+
+    # 1. Scale & Clamp Hands
     l_sh, r_sh = f[43][:2], f[44][:2]
     s_width = np.linalg.norm(l_sh - r_sh)
     f[0:21] += (f[47] - f[0]); f[0:21] = hard_clamp_hand(f[0:21], f[47], s_width)
     f[21:42] += (f[48] - f[21]); f[21:42] = hard_clamp_hand(f[21:42], f[48], s_width)
 
-    def draw_part(topo, color, lw_scale=1.0):
-        for (u, v) in topo:
-            artists.extend(stacked_line(ax, f[u,0], f[u,1], f[v,0], f[v,1], color, base_lw=2.5*lw_scale))
+    # 2. Draw Shoulders (Red Line)
+    # Connect 43 to 44
+    line, = ax.plot([l_sh[0], r_sh[0]], [l_sh[1], r_sh[1]], color=C_SHOULDER, lw=2)
+    artists.append(line)
 
+    # 3. Draw Spine/Head (Green Line)
     cx, cy = (l_sh[0] + r_sh[0])/2, (l_sh[1] + r_sh[1])/2
-    cy_dip = cy + 0.005
-    artists.extend(stacked_line(ax, l_sh[0], l_sh[1], cx, cy_dip, C_RED_ARM, base_lw=3.0))
-    artists.extend(stacked_line(ax, r_sh[0], r_sh[1], cx, cy_dip, C_RED_ARM, base_lw=3.0))
-    artists.extend(stacked_line(ax, cx, cy_dip, cx, cy-0.20, C_GREEN_ARM, base_lw=2.5))
+    # Draw straight up
+    line, = ax.plot([cx, cx], [cy, cy-0.25], color=C_SPINE, lw=2)
+    artists.append(line)
 
-    draw_part(ARM_RIGHT_UPPER, C_ORANGE_DARK); draw_part(ARM_RIGHT_LOWER, C_ORANGE_LIGHT)
-    draw_part(ARM_LEFT_UPPER,  C_ORANGE_DARK); draw_part(ARM_LEFT_LOWER,  C_ORANGE_LIGHT)
+    # 4. Helper to draw segments
+    def plot_seg(topo, color, lw=2):
+        for u, v in topo:
+            l, = ax.plot([f[u,0], f[v,0]], [f[u,1], f[v,1]], color=color, lw=lw)
+            artists.append(l)
 
-    s = 0.8
-    draw_part(LH_THUMB, C_THUMB, s); draw_part(LH_INDEX, C_INDEX, s)
-    draw_part(LH_MIDDLE, C_MIDDLE, s); draw_part(LH_RING, C_RING, s); draw_part(LH_PINKY, C_PINKY, s)
-    draw_part(RH_THUMB, C_THUMB, s); draw_part(RH_INDEX, C_INDEX, s)
-    draw_part(RH_MIDDLE, C_MIDDLE, s); draw_part(RH_RING, C_RING, s); draw_part(RH_PINKY, C_PINKY, s)
+    # 5. Draw Arms (Orange)
+    plot_seg(ARM_LEFT, C_ARM, lw=2)
+    plot_seg(ARM_RIGHT, C_ARM, lw=2)
+
+    # 6. Draw Hands (Rainbow)
+    # Left
+    plot_seg(LH_THUMB, C_THUMB, 1.5); plot_seg(LH_INDEX, C_INDEX, 1.5)
+    plot_seg(LH_MIDDLE, C_MIDDLE, 1.5); plot_seg(LH_RING, C_RING, 1.5); plot_seg(LH_PINKY, C_PINKY, 1.5)
+    # Right
+    plot_seg(RH_THUMB, C_THUMB, 1.5); plot_seg(RH_INDEX, C_INDEX, 1.5)
+    plot_seg(RH_MIDDLE, C_MIDDLE, 1.5); plot_seg(RH_RING, C_RING, 1.5); plot_seg(RH_PINKY, C_PINKY, 1.5)
 
     return artists
 
 # ==========================================
-# 4. SCIENTIFIC LOOKUP
+# 5. SCIENTIFIC LOOKUP
 # ==========================================
 def find_ground_truth_id(target_gloss="HELLO"):
     if not os.path.exists(GLOSS_CSV_PATH) or not os.path.exists(GT_PKL_PATH): return None
@@ -111,11 +118,11 @@ def find_ground_truth_id(target_gloss="HELLO"):
                 elif b in gt_dataset: vid, gid = b, a
                 else: continue
                 if target_gloss in gid.upper() or "GLOSS_0" in gid.upper(): return vid
-    if len(gt_dataset) > 0: return list(gt_dataset.keys())[0] # Fallback
+    if len(gt_dataset) > 0: return list(gt_dataset.keys())[0]
     return None
 
 # ==========================================
-# 5. MAIN (CLEAN FONTS)
+# 6. MAIN (REPLICA LAYOUT & FIXED TIMING)
 # ==========================================
 def main():
     target_name = "hello_world"
@@ -129,44 +136,53 @@ def main():
     gt_id = find_ground_truth_id(target_gloss)
     if gt_id is None: print("❌ Ground Truth not found."); return
     print(f"✅ FOUND ID: {gt_id}")
-    
-    pred = np.load(pred_path); 
+
+    pred = np.load(pred_path);
     if isinstance(pred, list): pred = pred[0]
     with open(GT_PKL_PATH, "rb") as f: gt = pickle.load(f)[gt_id]
     gt = np.array(gt)
-    
-    # --- PLOT SETUP ---
+
+    # --- FIX TIMING: USE MAX LENGTH ---
+    max_len = max(len(pred), len(gt))
+
+    # --- PLOT SETUP (EXACT REPLICA) ---
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), dpi=150)
     plt.subplots_adjust(left=0.05, right=0.95, top=0.9, bottom=0.15, wspace=0.1)
-    
-    # 1. FULL VERTICAL DIVIDER
+
+    # 1. FULL VERTICAL DIVIDER (Top to Bottom)
     line = Line2D([0.5, 0.5], [0.05, 0.95], transform=fig.transFigure, color="black", linewidth=2)
     fig.add_artist(line)
 
-    # 2. LABELS (Fixed Font)
-    # Use 'sans-serif' instead of 'Arial' to avoid Linux warnings
-    ax1.text(0.5, -0.1, "Predicted Sign Pose", transform=ax1.transAxes, 
+    # 2. TEXT LABELS (Matching Font & Color)
+    # Left: Red Prediction
+    ax1.text(0.5, -0.1, "Predicted Sign Pose", transform=ax1.transAxes,
              ha='center', fontsize=18, color='#EE3333', fontname='sans-serif', weight='normal')
-    
-    ax2.text(0.5, -0.1, "Ground Truth Pose", transform=ax2.transAxes, 
+
+    # Right: Black Ground Truth
+    ax2.text(0.5, -0.1, "Ground Truth Pose", transform=ax2.transAxes,
              ha='center', fontsize=18, color='black', fontname='sans-serif', weight='normal')
-    
-    ax2.text(0.5, -0.2, f"Sequence ID: {gt_id}", transform=ax2.transAxes, 
+
+    # ID Below Right Side (Small, Black)
+    ax2.text(0.5, -0.2, f"Sequence ID: {gt_id}", transform=ax2.transAxes,
              ha='center', fontsize=10, color='black', fontname='monospace', weight='bold')
 
     for ax in [ax1, ax2]:
         ax.axis("off"); ax.set_aspect("equal"); ax.set_xlim(0,1); ax.set_ylim(1,0)
 
-    # Animation
     arts = []
     def update(i):
         nonlocal arts
         for a in arts: a.remove()
         arts = []
-        arts.extend(draw_skeleton_high_quality(ax1, pred[i]))
-        arts.extend(draw_skeleton_high_quality(ax2, gt[i]))
 
-    ani = FuncAnimation(fig, update, frames=min(len(pred), len(gt)), interval=40)
+        # Safe Indexing: If i is past the end, use the last frame (freeze)
+        idx_pred = min(i, len(pred) - 1)
+        idx_gt = min(i, len(gt) - 1)
+
+        arts.extend(draw_skeleton_clean(ax1, pred[idx_pred]))
+        arts.extend(draw_skeleton_clean(ax2, gt[idx_gt]))
+
+    ani = FuncAnimation(fig, update, frames=max_len, interval=40)
     out_name = f"compare_{target_name}.mp4"
     ani.save(os.path.join(PROJECT_ROOT, out_name), writer="ffmpeg", dpi=150)
     print(f"✅ Video Saved: {out_name}")
