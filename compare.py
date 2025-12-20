@@ -53,11 +53,11 @@ ARM_RIGHT = [(43, 45), (45, 47)]
 # 4. DRAWING FUNCTIONS (Thin, Clean Lines)
 # ==========================================
 def hard_clamp_hand(points, wrist, shoulder_width):
-    if shoulder_width < 0.01: shoulder_width = 0.15
-    limit = shoulder_width * 0.8
+    if shoulder_width < 0.01: shoulder_width = 0.15 
+    limit = shoulder_width * 0.8 
     for i in range(len(points)):
         vec = points[i] - wrist
-        dist = np.linalg.norm(vec[:2])
+        dist = np.linalg.norm(vec[:2]) 
         if dist > limit:
             points[i] = wrist + (vec * (limit / dist))
     return points
@@ -65,7 +65,7 @@ def hard_clamp_hand(points, wrist, shoulder_width):
 def draw_skeleton_clean(ax, f):
     artists = []
     f = f.copy()
-
+    
     # 1. Scale & Clamp Hands
     l_sh, r_sh = f[43][:2], f[44][:2]
     s_width = np.linalg.norm(l_sh - r_sh)
@@ -118,7 +118,7 @@ def find_ground_truth_id(target_gloss="HELLO"):
                 elif b in gt_dataset: vid, gid = b, a
                 else: continue
                 if target_gloss in gid.upper() or "GLOSS_0" in gid.upper(): return vid
-    if len(gt_dataset) > 0: return list(gt_dataset.keys())[0]
+    if len(gt_dataset) > 0: return list(gt_dataset.keys())[0] 
     return None
 
 # ==========================================
@@ -136,34 +136,34 @@ def main():
     gt_id = find_ground_truth_id(target_gloss)
     if gt_id is None: print("❌ Ground Truth not found."); return
     print(f"✅ FOUND ID: {gt_id}")
-
-    pred = np.load(pred_path);
+    
+    pred = np.load(pred_path); 
     if isinstance(pred, list): pred = pred[0]
     with open(GT_PKL_PATH, "rb") as f: gt = pickle.load(f)[gt_id]
     gt = np.array(gt)
 
     # --- FIX TIMING: USE MAX LENGTH ---
     max_len = max(len(pred), len(gt))
-
+    
     # --- PLOT SETUP (EXACT REPLICA) ---
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), dpi=150)
     plt.subplots_adjust(left=0.05, right=0.95, top=0.9, bottom=0.15, wspace=0.1)
-
+    
     # 1. FULL VERTICAL DIVIDER (Top to Bottom)
     line = Line2D([0.5, 0.5], [0.05, 0.95], transform=fig.transFigure, color="black", linewidth=2)
     fig.add_artist(line)
 
     # 2. TEXT LABELS (Matching Font & Color)
     # Left: Red Prediction
-    ax1.text(0.5, -0.1, "Predicted Sign Pose", transform=ax1.transAxes,
+    ax1.text(0.5, -0.1, "Predicted Sign Pose", transform=ax1.transAxes, 
              ha='center', fontsize=18, color='#EE3333', fontname='sans-serif', weight='normal')
-
+    
     # Right: Black Ground Truth
-    ax2.text(0.5, -0.1, "Ground Truth Pose", transform=ax2.transAxes,
+    ax2.text(0.5, -0.1, "Ground Truth Pose", transform=ax2.transAxes, 
              ha='center', fontsize=18, color='black', fontname='sans-serif', weight='normal')
-
+    
     # ID Below Right Side (Small, Black)
-    ax2.text(0.5, -0.2, f"Sequence ID: {gt_id}", transform=ax2.transAxes,
+    ax2.text(0.5, -0.2, f"Sequence ID: {gt_id}", transform=ax2.transAxes, 
              ha='center', fontsize=10, color='black', fontname='monospace', weight='bold')
 
     for ax in [ax1, ax2]:
@@ -174,11 +174,11 @@ def main():
         nonlocal arts
         for a in arts: a.remove()
         arts = []
-
+        
         # Safe Indexing: If i is past the end, use the last frame (freeze)
         idx_pred = min(i, len(pred) - 1)
         idx_gt = min(i, len(gt) - 1)
-
+        
         arts.extend(draw_skeleton_clean(ax1, pred[idx_pred]))
         arts.extend(draw_skeleton_clean(ax2, gt[idx_gt]))
 
